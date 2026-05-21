@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora Chevrolet Kaissen</title>
+    <style>
+        :root {
+            --primary: #ecb100;
+            --bg-dark: #1e2229;
+            --bg-card: #ffffff;
+            --text-main: #333333;
+            --border-color: #dddddd;
+            --error-color: #d32f2f;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: #f4f6f9;
+            color: var(--text-main);
+            padding: 30px 15px;
+            margin: 0;
+        }
+
+        .calculadora-container {
+            background: var(--bg-card);
+            max-width: 600px;
+            margin: auto;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            border-top: 6px solid var(--primary);
+        }
+
+        .header {
+            background: var(--bg-dark);
+            color: #ffffff;
+            text-align: center;
+            padding: 22px;
+        }
+
+        .header h2 { margin: 0; font-size: 24px; letter-spacing: 1px; font-weight: 700; }
+        .body-content { padding: 25px; }
+        .form-group { margin-bottom: 20px; }
+        
+        label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; color: #444; }
+        
+        input, select {
+            width: 100%; padding: 12px; font-size: 16px; border: 1px solid var(--border-color);
+            border-radius: 6px; box-sizing: border-box; background-color: #fafafa; transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none; border-color: #b38600; background-color: #ffffff;
+            box-shadow: 0 0 0 3px rgba(236, 177, 0, 0.2);
+        }
+
+        .info-panel {
+            background-color: #e3f2fd; border-left: 4px solid #0056b3; padding: 15px;
+            border-radius: 4px; margin-bottom: 20px; display: none;
+        }
+        .info-panel p { margin: 5px 0; font-size: 15px; color: #0d47a1; }
+        .info-panel span { font-weight: bold; color: #000000; }
+        
+        .error-message { color: var(--error-color); font-size: 13px; font-weight: 600; margin-top: 5px; display: none; }
+        
+        .panel-resultados { background: var(--bg-dark); color: #ffffff; padding: 20px; border-radius: 8px; margin-top: 25px; }
+        .resultado-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #3a3f4d; }
+        .resultado-item:last-child { border-bottom: none; }
+        .resultado-label { font-size: 16px; color: #bbbbbb; }
+        .resultado-valor { font-size: 24px; font-weight: 700; color: var(--primary); }
+
+        .btn-whatsapp {
+            display: block;
+            width: 100%;
+            background-color: #25D366;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 20px;
+            text-align: center;
+            box-sizing: border-box;
+            transition: background-color 0.3s ease;
+        }
+
+        .btn-whatsapp:hover {
+            background-color: #1ebd56;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="calculadora-container">
+        <div class="header">
+            <h2>CALCULADORA CHEVROLET</h2>
+        </div>
+        
+        <div class="body-content">
+            <div class="form-group">
+                <label for="vehiculo">Vehículo / Línea 0KM:</label>
+                <select id="vehiculo" onchange="cargarCampanas()">
+                    <option value="">Esperando modelos...</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="valorVehiculo">Valor del Vehículo:</label>
+                <input type="text" id="valorVehiculo" placeholder="Ej: $35.000.000" oninput="formatearMoneda(this); calcularTodo()">
+            </div>
+
+            <div class="form-group">
+                <label for="campana">Plan / Campaña:</label>
+                <select id="campana" onchange="cargarCuotas()" disabled>
+                    <option value="">Primero seleccione un vehículo...</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="plazo">Cantidad de Cuotas:</label>
+                <select id="plazo" onchange="mostrarDetallesYCalcular()" disabled>
+                    <option value="">Primero seleccione el plan...</option>
+                </select>
+            </div>
+
+            <div id="panelInfo" class="info-panel">
+                <p>Tasa Nominal Anual (TNA): <span id="infoTNA">-</span></p>
+                <p>Máximo a Financiar: <span id="infoMaximo">$0</span></p>
+            </div>
+
+            <div class="form-group">
+                <label for="montoCredito">Monto del Crédito:</label>
+                <input type="text" id="montoCredito" placeholder="Ej: $5.000.000" oninput="formatearMoneda(this); calcularTodo()">
+                <div id="errorMaximo" class="error-message">¡Atención! El monto ingresado excede el límite máximo permitido para este plazo.</div>
+            </div>
+
+            <div class="panel-resultados">
+                <div class="resultado-item">
+                    <span class="resultado-label">Entrega Requerida:</span>
+                    <span id="resEntrega" class="resultado-valor">$0,00</span>
+                </div>
+                <div class="resultado-item">
+                    <span class="resultado-label">Importe de la Cuota:</span>
+                    <span id="resCuota" class="resultado-valor">$0,00</span>
+                </div>
+            </div>
+
+            <button class="btn-whatsapp" onclick="enviarWhatsApp()">Enviar por WhatsApp</button>
+        </div>
+    </div>
+
+    <script>
+        const database = {
+            "SONIC": {
+                "Plan Preventa": [
+                    { cuotas: 12, tna: "0,00%", coef: 83.33, gastos: 0.16, max: 28000000 },
+                    { cuotas: 18, tna: "0,00%", coef: 55.56, gastos: 0.16, max: 25000000 },
+                    { cuotas: 24, tna: "0,00%", coef: 41.67, gastos: 0.16, max: 22000000 }
+                ]
+            },
+            "TRACKER": {
+                "Plan Promocional": [
+                    { cuotas: 12, tna: "0,00%", coef: 83.33, gastos: 0.16, max: 27000000 },
+                    { cuotas: 18, tna: "9,90%", coef: 61.06, gastos: 0.16, max: 18000000 },
+                    { cuotas: 18, tna: "15,90%", coef: 65.45, gastos: 0.16, max: 26500000 },
+                    { cuotas: 24, tna: "20,90%", coef: 54.80, gastos: 0.15, max: 20000000 },
+                    { cuotas: 30, tna: "24,90%", coef: 49.23, gastos: 0.15, max: 22000000 },
+                    { cuotas: 36, tna: "24,90%", coef: 43.83, gastos: 0.15, max: 24000000 }
+                ],
+                "Plan Exclusivo (Con Cupos)": [
+                    { cuotas: 18, tna: "0,00%", coef: 55.56, gastos: 0.16, max: 23000000 },
+                    { cuotas: 24, tna: "0,00%", coef: 41.67, gastos: 0.16, max: 16000000 }
+                ],
+                "Plan Diferido": [
+                    { cuotas: 12, tna: "0,00%", coef: 83.33, gastos: 0.16, max: 27000000 }
+                ]
+            },
+            "MONTANA": {
+                "Plan Promocional": [
+                    { cuotas: 12, tna: "0,00%", coef: 83.33, gastos: 0.16, max: 30000000 },
+                    { cuotas: 18, tna: "9,90%", coef: 61.66, gastos: 0.16, max: 18000000 },
+                    { cuotas: 18, tna: "15,90%", coef: 65.45, gastos: 0.16, max: 26500000 },
+                    { cuotas: 24, tna: "18,90%", coef: 53.50, gastos: 0.16, max: 27000000 },
+                    { cuotas: 30, tna: "23,90%", coef: 48.56, gastos: 0.16, max: 32000000 }
+                ],
+                "Plan Exclusivo (Con Cupos)": [
+                    { cuotas: 18, tna: "0,00%", coef: 55.56, gastos: 0.16, max: 18000000 }
+                ],
+                "Plan Diferido": [
+                    { cuotas: 12, tna: "0,00%", coef: 83.33, gastos: 0.16, max: 30000000 }
+                ]
+            },
+            "CAPTIVA PHEV": {
+                "Plan Promocional": [
+                    { cuotas: 12, tna: "0,00%", coef: 83.33, gastos: 0.15, max: 30000000 },
+                    { cuotas: 18, tna: "0,00%", coef: 55.56, gastos: 0.16, max: 20000000 },
+                    { cuotas: 24, tna: "19,90%", coef: 54.15, gastos: 0.16, max: 30000000 },
+                    { cuotas: 30, tna: "24,90%", coef: 49.23, gastos: 0.15, max: 36500000 }
+                ],
+                "Plan Exclusivo (Con Cupos)": [
+                    { cuotas: 18, tna: "0,00%", coef: 55.56, gastos: 0.16, max: 26500000 }
+                ],
+                "Plan Diferido": [
+                    { cuotas: 12, tna: "0,00%", coef: 83.33, gastos: 0.15, max: 30000000 }
+                ]
+            },
+            "SPARK EUV": {
+                "Plan Promocional": [
+                    { cuotas: 12, tna: "0,00%", coef: 83.33, gastos: 0.15, max: 15000000 },
+                    { cuotas: 18, tna: "14,90%", coef: 64.81, gastos: 0.15, max: 18000000 },
+                    { cuotas: 18, tna: "19,90%", coef: 68.02, gastos: 0.15, max: 30000000 },
+                    { cuotas: 24, tna: "25,90%", coef: 58.12, gastos: 0.15, max: 25000000 },
+                    { cuotas: 30, tna: "29,90%", coef: 52.67, gastos: 0.15, max: 30000000 }
+                ],
+                "Plan Diferido": [
+                    { cuotas: 12, tna: "0,00%", coef: 83.33, gastos: 0.15, max: 15000000 }
+                ]
+            },
+            "ONIX": {
+                "Plan Promocional": [
+                    { cuotas: 12, tna: "0,00%", coef: 83.33, gastos: 0.16, max: 25000000 },
+                    { cuotas: 18, tna: "9,90%", coef: 61.66, gastos: 0.16, max: 18000000 },
+                    { cuotas: 18, tna: "15,90%", coef: 65.45, gastos: 0.16, max: 26500000 },
+                    { cuotas: 24, tna: "20,90%", coef: 54.80, gastos: 0.15, max: 20000000 },
+                    { cuotas: 30, tna: "24,90%", coef: 49.23, gastos: 0.15, max: 22000000 },
+                    { cuotas: 36, tna: "24,90%", coef: 43.83, gastos: 0.15, max: 24000000 }
+                ],
+                "Plan Exclusivo (Con Cupos)": [
+                    { cuotas: 18, tna: "0,00%", coef: 55.56, gastos: 0.16, max: 22000000 },
+                    { cuotas: 24, tna: "0,00%", coef: 41.67, gastos: 0.16, max: 20000000 }
+                ],
+                "Plan Diferido": [
+                    { cuotas: 12, tna: "0,00%", coef: 83.33, gastos: 0.16, max: 25000000 }
+                ]
+            },
+            "S10 LTZ y HC": {
+                "Plan Promocional": [
+                    { cuotas: 12, tna: "0,00%", coef: 83.33, gastos: 0.15, max: 35000000 },
+                    { cuotas: 18, tna: "19,90%", coef: 68.02, gastos: 0.15, max: 40000000 },
+                    { cuotas: 24, tna: "19,90%", coef: 54.15, gastos: 0.15, max: 27500000 },
+                    { cuotas: 30, tna: "25,90%", coef: 49.92, gastos: 0.16, max: 50000000 }
+                ],
+                "Plan Exclusivo (Con Cupos)": [
+                    { cuotas: 18, tna: "0,00%", coef: 55.56, gastos: 0.16, max: 30000000 }
+                ],
+                "Plan Diferido": [
+                    { cuotas: 12, tna: "0,00%", coef: 83.33, gastos: 0.15, max: 35000000 }
+                ]
+            },
+            "S10 WT y Z71": {
+                "Plan Promocional": [
+                    { cuotas: 12, tna: "0,00%", coef: 83.33, gastos: 0.15, max: 30000000 },
+                    { cuotas: 18, tna: "19,90%", coef: 68.02, gastos: 0.15, max: 40000000 },
+                    { cuotas: 24, tna: "19,90%", coef: 54.15, gastos: 0.15, max: 27500000 },
+                    { cuotas: 30, tna: "25,90%", coef: 49.92, gastos: 0.15, max: 30000000 }
+                ],
+                "Plan Exclusivo (Con Cupos)": [
+                    { cuotas: 18, tna: "0,00%", coef: 55.56, gastos: 0.17, max: 25000000 }
+                ],
+                "Plan Diferido": [
+                    { cuotas: 12, tna: "0,00%", coef: 83.33, gastos: 0.15, max: 30000000 }
+                ]
+            },
+            "SPIN": {
+                "Plan Promocional": [
+                    { cuotas: 12, tna: "0,00%", coef: 83.33, gastos: 0.16, max: 24000000 },
+                    { cuotas: 18, tna: "0,00%", coef: 55.56, gastos: 0.16, max: 18000000 },
+                    { cuotas: 18, tna: "9,90%", coef: 61.66, gastos: 0.16, max: 18000000 },
+                    { cuotas: 18, tna: "15,90%", coef: 65.45, gastos: 0.15, max: 26500000 },
+                    { cuotas: 24, tna: "20,90%", coef: 54.80, gastos: 0.15, max: 20000000 },
+                    { cuotas: 30, tna: "24,90%", coef: 49.23, gastos: 0.15, max: 25000000 }
+                ],
+                "Plan Diferido": [
+                    { cuotas: 12, tna: "0,00%", coef: 83.33, gastos: 0.16, max: 24000000 }
+                ]
+            },
+            "TRAILBLAZER": {
+                "Plan Promocional": [
+                    { cuotas: 12, tna: "0,00%", coef: 83.33, gastos: 0.15, max: 43000000 },
+                    { cuotas: 18, tna: "19,90%", coef: 68.02, gastos: 0.15, max: 40000000 },
+                    { cuotas: 24, tna: "19,90%", coef: 54.15, gastos: 0.15, max: 27500000 },
+                    { cuotas: 30, tna: "25,90%", coef: 49.92, gastos: 0.16, max: 50000000 }
+                ],
+                "Plan Exclusivo (Con Cupos)": [
+                    { cuotas: 18, tna: "0,00%", coef: 55.56, gastos: 0.17, max: 30000000 }
+                ],
+                "Plan Diferido": [
+                    { cuotas: 12, tna: "0,00%", coef: 83.33, gastos: 0.15, max: 43000000 }
+                ]
+            },
+            "SILVERADO": {
+                "Plan Promocional": [
+                    { cuotas: 12, tna: "0,00%", coef: 83.33, gastos: 0.15, max: 15000000 }
+                ],
+                "Plan Diferido": [
+                    { cuotas: 12, tna: "0,00%", coef: 83.33, gastos: 0.15, max: 15000000 }
+                ]
+            }
+        };
+
+        window.onload = function() {
+            const selectV = document.getElementById("vehiculo");
+            if (Object.keys(database).length > 0) {
+                selectV.innerHTML = '<option value="">Seleccione el modelo...</option>';
+                for (let modelo in database) {
+                    let opt = document.createElement("option");
+                    opt.value = modelo;
+                    opt.innerText = modelo;
+                    selectV.appendChild(opt);
+                }
+            }
+        };
+
+        function formatearMoneda(input) {
+            let valorPuro = input.value.replace(/\D/g, "");
+            if (valorPuro === "") {
+                input.value = "";
+                return;
+            }
+            let numero = parseInt(valorPuro, 10);
+            input.value = "$" + numero.toLocaleString('es-AR');
+        }
+
+        function obtenerValorNumerico(id) {
+            let valor = document.getElementById(id).value.replace(/\D/g, "");
+            return parseFloat(valor) || 0;
+        }
+
+        function cargarCampanas() {
+            const vehiculo = document.getElementById("vehiculo").value;
+            const selectC = document.getElementById("campana");
+            const selectP = document.getElementById("plazo");
+            
+            selectC.innerHTML = '<option value="">Seleccione el plan...</option>';
+            selectP.innerHTML = '<option value="">Primero seleccione el plan...</option>';
+            selectP.disabled = true;
+            document.getElementById("panelInfo").style.display = "none";
+
+            if (!vehiculo || !database[vehiculo]) {
+                selectC.disabled = true;
+                resetResultados();
+                return;
+            }
+
+            selectC.disabled = false;
+            for (let plan in database[vehiculo]) {
+                let opt = document.createElement("option");
+                opt.value = plan;
+                opt.innerText = plan;
+                selectC.appendChild(opt);
+            }
+            calcularTodo();
+        }
+
+        function cargarCuotas() {
+            const vehiculo = document.getElementById("vehiculo").value;
+            const campana = document.getElementById("campana").value;
+            const selectP = document.getElementById("plazo");
+
+            selectP.innerHTML = '<option value="">Seleccione el plazo...</option>';
+            document.getElementById("panelInfo").style.display = "none";
+
+            if (!campana || !database[vehiculo][campana]) {
+                selectP.disabled = true;
+                resetResultados();
+                return;
+            }
+
+            selectP.disabled = false;
+            const lineas = database[vehiculo][campana];
+
+            lineas.forEach((linea, index) => {
+                let opt = document.createElement("option");
+                opt.value = index; 
+                opt.innerText = `${linea.cuotas} Meses`;
+                selectP.appendChild(opt);
+            });
+
+            calcularTodo();
+        }
+
+        function mostrarDetallesYCalcular() {
+            const vehiculo = document.getElementById("vehiculo").value;
+            const campana = document.getElementById("campana").value;
+            const indexPlazo = document.getElementById("plazo").value;
+            const panelInfo = document.getElementById("panelInfo");
+
+            if (indexPlazo === "") {
+                panelInfo.style.display = "none";
+                resetResultados();
+                return;
+            }
+
+            const config = database[vehiculo][campana][parseInt(indexPlazo)];
+            
+            document.getElementById("infoTNA").innerText = config.tna;
+            document.getElementById("infoMaximo").innerText = `$${config.max.toLocaleString('es-AR')}`;
+            panelInfo.style.display = "block";
+
+            calcularTodo();
+        }
+
+        function calcularTodo() {
+            const valorVehiculo = obtenerValorNumerico("valorVehiculo");
+            const montoCredito = obtenerValorNumerico("montoCredito");
+            const vehiculo = document.getElementById("vehiculo").value;
+            const campana = document.getElementById("campana").value;
+            const indexPlazo = document.getElementById("plazo").value;
+            const errorMaximo = document.getElementById("errorMaximo");
+
+            if (!vehiculo || !campana || indexPlazo === "" || valorVehiculo <= 0 || montoCredito <= 0) {
+                resetResultados();
+                errorMaximo.style.display = "none";
+                return;
+            }
+
+            const config = database[vehiculo][campana][parseInt(indexPlazo)];
+
+            if (config) {
+                if (montoCredito > config.max) {
+                    errorMaximo.style.display = "block";
+                    errorMaximo.innerText = `¡Atención! El monto supera el límite de esta opción ($${config.max.toLocaleString('es-AR')}).`;
+                } else {
+                    errorMaximo.style.display = "none";
+                }
+
+                let gastoOtorgamiento = montoCredito * config.gastos;
+                let entrega = valorVehiculo - (montoCredito - gastoOtorgamiento) + 40000;
+                let cuota = (montoCredito / 1000) * config.coef;
+
+                document.getElementById("resEntrega").innerText = `$${entrega.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                document.getElementById("resCuota").innerText = `$${cuota.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            }
+        }
+
+        function resetResultados() {
+            document.getElementById("resEntrega").innerText = "$0,00";
+            document.getElementById("resCuota").innerText = "$0,00";
+        }
+
+        function enviarWhatsApp() {
+            const vehiculo = document.getElementById("vehiculo").value;
+            const campana = document.getElementById("campana").value;
+            const selectP = document.getElementById("plazo");
+            const plazoTexto = selectP.options[selectP.selectedIndex] ? selectP.options[selectP.selectedIndex].text : "";
+            
+            const entrega = document.getElementById("resEntrega").innerText;
+            const cuota = document.getElementById("resCuota").innerText;
+            
+            if (!vehiculo || !campana || selectP.value === "" || entrega === "$0,00" || cuota === "$0,00") {
+                alert("Por favor, complete todos los campos y realice un cálculo antes de enviar.");
+                return;
+            }
+            
+            const mensaje = `*Cotización Chevrolet*\n\n` +
+                            `🚗 *Vehículo:* ${vehiculo}\n` +
+                            `📋 *Plan:* ${campana} (${plazoTexto})\n` +
+                            `💰 *Entrega Requerida:* ${entrega}\n` +
+                            `📉 *Importe de la Cuota:* ${cuota}`;
+                            
+            const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(mensaje)}`;
+            window.open(url, '_blank');
+        }
+    </script>
+</body>
+</html>
